@@ -3,7 +3,7 @@ import os
 import pathlib
 from typing import Callable
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, DQN 
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.vec_env.vec_monitor import VecMonitor
 
@@ -106,12 +106,20 @@ parser.add_argument(
     type=int,
     help="How many instances of the environment executable to " "launch - requires --env_path to be set if > 1.",
 )
+
+# new param that allows us to use dqn, if nothing is specified it will use ppo
+parser.add_argument(
+    "--alg",
+    default="ppo",
+    choices=["ppo", "dqn"],
+    type=str,
+    help="RL algorithm to use: ppo or dqn",
+)
+
 args, extras = parser.parse_known_args()
 
 
 def handle_onnx_export():
-    # Enforce the extension of onnx and zip when saving model to avoid potential conflicts in case of same name
-    # and extension used for both
     if args.onnx_export_path is not None:
         path_onnx = pathlib.Path(args.onnx_export_path).with_suffix(".onnx")
         print("Exporting onnx to: " + os.path.abspath(path_onnx))
@@ -142,7 +150,6 @@ def cleanup():
 path_checkpoint = os.path.join(args.experiment_dir, args.experiment_name + "_checkpoints")
 abs_path_checkpoint = os.path.abspath(path_checkpoint)
 
-# Prevent overwriting existing checkpoints when starting a new experiment if checkpoint saving is enabled
 if args.save_checkpoint_frequency is not None and os.path.isdir(path_checkpoint):
     raise RuntimeError(
         abs_path_checkpoint + " folder already exists. "
@@ -158,49 +165,49 @@ if args.env_path is None and args.viz:
     print("Info: Using --viz without --env_path set has no effect, in-editor training will always render.")
 
 env = StableBaselinesGodotEnv(
-    env_path=args.env_path, show_window=args.viz, seed=args.seed, n_parallel=args.n_parallel, speedup=args.speedup
+    env_path=args.env_path,
+    show_window=args.viz,
+    seed=args.seed,
+    n_parallel=args.n_parallel,
+    speedup=args.speedup,
 )
 env = VecMonitor(env)
 
 
-# LR schedule code snippet from:
-# https://stable-baselines3.readthedocs.io/en/master/guide/examples.html#learning-rate-schedule
 def linear_schedule(initial_value: float) -> Callable[[float], float]:
-    """
-    Linear learning rate schedule.
-
-    :param initial_value: Initial learning rate.
-    :return: schedule that computes
-      current learning rate depending on remaining progress
-    """
-
     def func(progress_remaining: float) -> float:
-        """
-        Progress will decrease from 1 (beginning) to 0.
-
-        :param progress_remaining:
-        :return: current learning rate
-        """
         return progress_remaining * initial_value
-
     return func
 
 
+# Adjusted the logic so that we either use ppo (default) OR dqn as our RL algo
 if args.resume_model_path is None:
-    learning_rate = 0.0003 if not args.linear_lr_schedule else linear_schedule(0.0003)
-    model: PPO = PPO(
-        "MultiInputPolicy",
-        env,
-        ent_coef=0.0001,
-        verbose=2,
-        n_steps=32,
-        tensorboard_log=args.experiment_dir,
-        learning_rate=learning_rate,
-    )
+    if args.alg == "ppo":
+        learning_rate = 0.0003 if not args.linear_lr_schedule else linear_schedule(0.0003)
+        model: PPO = PPO(
+            "MultiInputPolicy",
+            env,
+            ent_coef=0.0001,
+            verbose=2,
+            n_steps=32,
+            tensorboard_log=args.experiment_dir,
+            learning_rate=learning_rate,
+        )
+    else:  # dqn
+        model: DQN = DQN(
+            "MultiInputPolicy",
+            env,
+            verbose=2,
+            tensorboard_log=args.experiment_dir,
+        )
 else:
     path_zip = pathlib.Path(args.resume_model_path)
     print("Loading model: " + os.path.abspath(path_zip))
-    model = PPO.load(path_zip, env=env, tensorboard_log=args.experiment_dir)
+    if args.alg == "ppo":
+        model = PPO.load(path_zip, env=env, tensorboard_log=args.experiment_dir)
+    else:
+        model = DQN.load(path_zip, env=env, tensorboard_log=args.experiment_dir)
+
 
 if args.inference:
     obs = env.reset()

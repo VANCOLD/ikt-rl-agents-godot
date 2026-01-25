@@ -4,7 +4,7 @@ extends Area2D
 @export var amplitude := 4
 @export var frequency := 5
 
-@onready var aiController = $"../../Player/AIController2D"
+var aiController = null
 var time_passed = 0
 var initial_position := Vector2.ZERO
 

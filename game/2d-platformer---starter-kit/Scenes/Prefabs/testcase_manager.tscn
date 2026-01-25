@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://bxcol73c6aw57"]
+
+[ext_resource type="Script" uid="uid://cfc1rplnejkq" path="res://Scripts/TestcaseManager.gd" id="1_37rf2"]
+[ext_resource type="Script" uid="uid://d0otq4g55xaq7" path="res://Testcases/PlayerBasic.gd" id="2_ljgev"]
+
+[node name="TestcaseManager" type="Node2D"]
+script = ExtResource("1_37rf2")
+testcase = ExtResource("2_ljgev")

@@ -17,10 +17,10 @@ var last_dir : float = 0
 var last_x : float = 0.0
 
 @onready var player_sprite = $AnimatedSprite2D
-@onready var spawn_point = %SpawnPoint
 @onready var particle_trails = $ParticleTrails
 @onready var death_particles = $DeathParticles
 @onready var aiController = $AIController2D
+var spawn_point: Node2D
 
 # --------- BUILT-IN FUNCTIONS ---------- #
 
@@ -44,24 +44,10 @@ func movement():
 	
 	# Move Player
 	var inputAxis = float(aiController.move)
-	var dir : float = sign(inputAxis)
-
-	# --- punish direction flipping (wiggle) ---
-	if dir != 0 and dir != last_dir:
-		aiController.reward -= 0.005
-
-	if dir != 0:
-		last_dir = dir
-
-	# --- reward actual forward progress ---
-	var dx : float = global_position.x - last_x
-	last_x = global_position.x
-
-	if dx > 0:
-		aiController.reward += 0.004
-	elif dx < 0:
-		aiController.reward -= 0.002
 	
+	# If the ai moves to the right we will reward them
+	if(inputAxis > 0):
+		aiController.reward += 0.5
 	
 	velocity = Vector2(inputAxis * move_speed, velocity.y)
 	move_and_slide()
@@ -106,9 +92,14 @@ func death_tween():
 	var tween = create_tween()
 	tween.tween_property(self, "scale", Vector2.ZERO, 0.15)
 	await tween.finished
-	global_position = spawn_point.global_position
+	
+	if spawn_point:
+		global_position = spawn_point.global_position
+	else:
+		global_position = Vector2.ZERO
+		push_warning("spawn_point is null during death_tween")
+		
 	await get_tree().create_timer(0.3).timeout
-	AudioManager.respawn_sfx.play()
 	respawn_tween()
 
 func respawn_tween():
@@ -126,7 +117,7 @@ func jump_tween():
 # Reset the player's position to the current level spawn point if collided with any trap
 func _on_collision_body_entered(_body):
 	if _body.is_in_group("Traps"):
-		aiController.reward -= 10;
+		aiController.reward -= 5;
 		AudioManager.death_sfx.play()
 		death_particles.emitting = true
 		death_tween()
