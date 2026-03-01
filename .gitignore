@@ -3,6 +3,13 @@ logs/*
 
 # Ignore the pycache
 __pycache__/*
+pipeline/__pycache__/*
 
 # Ignoring the tmp files inside the scenes!
 game/2d-platformer---starter-kit/Scenes/**/*.tmp
+
+#ignore exported levels
+bin/*
+
+#ignore results 
+results/*
