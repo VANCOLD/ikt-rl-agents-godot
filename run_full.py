@@ -16,26 +16,30 @@ FULL_HYPERS = [
     {"learning_rate": 0.0001, "ent_coef": 0.001, "n_steps": 64},
 ]
 
-TIMESTEPS_FULL = 1_000_000 
+TIMESTEPS_FULL = 1_000_000
+RUNNER_SCRIPT = os.path.join(ROOT, "runner.py")  # general pipeline runner
+
 
 def main():
-    print("Running full experiment pipeline on levels:", FULL_LEVELS)
-    
+    print("Running full experiment pipeline via runner.py on levels:", FULL_LEVELS)
+
     for level in FULL_LEVELS:
         for params in FULL_HYPERS:
-            cmd = (
-                f'"{PYTHON}" -m pipeline.train_sb3'
-                f' --alg ppo'
-                f' --env_path "{level}"'
-                f' --seed 0'
-                f' --timesteps {TIMESTEPS_FULL}'
-                f' --learning_rate {params["learning_rate"]}'
-                f' --ent_coef {params["ent_coef"]}'
-                f' --n_steps {params["n_steps"]}'
-                f' --n_parallel 2'
-            )
-            print(">> RUN:", cmd)
-            subprocess.run(cmd, shell=True)
+            cmd = [
+                PYTHON,
+                RUNNER_SCRIPT,
+                "--full_test",
+                "--full_levels", level,
+                "--timesteps", str(TIMESTEPS_FULL),
+                "--learning_rate", str(params["learning_rate"]),
+                "--ent_coef", str(params["ent_coef"]),
+                "--n_steps", str(params["n_steps"]),
+                "--n_parallel", "2",
+            ]
+
+            print(">> RUN:", " ".join(cmd))
+            subprocess.run(cmd, check=True)
+
 
 if __name__ == "__main__":
     main()

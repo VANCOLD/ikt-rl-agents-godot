@@ -117,7 +117,6 @@ parser.add_argument("--results_path", type=str, default=None, help="CSV file pat
 args, extras = parser.parse_known_args()
 
 
-# === Utility functions ===
 def handle_onnx_export():
     if args.onnx_export_path is not None:
         path_onnx = pathlib.Path(args.onnx_export_path).with_suffix(".onnx")
@@ -187,7 +186,6 @@ def evaluate(model, env, n_episodes=50, results_path=None):
     return mean_r, std_r, mean_l
 
 
-# === Environment setup ===
 env = SeededGodotEnv(
     env_path=args.env_path,
     show_window=args.viz,
@@ -197,7 +195,6 @@ env = SeededGodotEnv(
 )
 env = VecMonitor(env)
 
-# === Model setup ===
 if args.resume_model_path is None:
     if args.alg == "ppo":
         learning_rate = 0.0003 if not args.linear_lr_schedule else linear_schedule(0.0003)
@@ -245,7 +242,6 @@ if args.inference and args.resume_model_path is None:
 if args.env_path is None and args.viz:
     print("Info: Using --viz without --env_path set has no effect, in-editor training will always render.")
 
-# === Execution ===
 if args.inference or args.eval_only:
     evaluate(model, env, n_episodes=args.eval_episodes, results_path=args.results_path)
     cleanup()

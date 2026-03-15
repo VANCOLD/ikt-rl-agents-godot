@@ -6,7 +6,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 PYTHON = sys.executable
 
 FAST_LEVELS = [
-    os.path.join(ROOT, "bin", "level1.exe"), 
+    os.path.join(ROOT, "bin", "level1.exe"),
 ]
 
 FAST_HYPERS = [
@@ -14,26 +14,30 @@ FAST_HYPERS = [
     {"learning_rate": 0.0001, "ent_coef": 0.001, "n_steps": 32},
 ]
 
-TIMESTEPS_FAST = 50_000 
+TIMESTEPS_FAST = 50_000
+RUNNER_SCRIPT = os.path.join(ROOT, "runner.py")  # general pipeline runner
+
 
 def main():
-    print("Running fast test pipeline on levels:", FAST_LEVELS)
-    
+    print("Running fast test pipeline via runner.py on levels:", FAST_LEVELS)
+
     for level in FAST_LEVELS:
         for params in FAST_HYPERS:
-            cmd = (
-                f'"{PYTHON}" -m pipeline.train_sb3'
-                f' --alg ppo'
-                f' --env_path "{level}"'
-                f' --seed 0'
-                f' --timesteps {TIMESTEPS_FAST}'
-                f' --learning_rate {params["learning_rate"]}'
-                f' --ent_coef {params["ent_coef"]}'
-                f' --n_steps {params["n_steps"]}'
-                f' --n_parallel 2'
-            )
-            print(">> RUN:", cmd)
-            subprocess.run(cmd, shell=True)
+            cmd = [
+                PYTHON,
+                RUNNER_SCRIPT,
+                "--fast_test",
+                "--fast_levels", level,
+                "--timesteps", str(TIMESTEPS_FAST),
+                "--learning_rate", str(params["learning_rate"]),
+                "--ent_coef", str(params["ent_coef"]),
+                "--n_steps", str(params["n_steps"]),
+                "--n_parallel", "2",
+            ]
+
+            print(">> RUN:", " ".join(cmd))
+            subprocess.run(cmd, check=True)
+
 
 if __name__ == "__main__":
     main()
