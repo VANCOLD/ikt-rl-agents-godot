@@ -26,6 +26,7 @@ var spawn_point: Node2D
 
 func _process(_delta):
 	# Calling functions
+	aiController.reward -= 0.01 #Each frame we substract a small amount making time important
 	movement()
 	player_animations()
 	flip_player()
